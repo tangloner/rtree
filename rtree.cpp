@@ -111,7 +111,7 @@ int Rtree::insert(const RtreeNodeEntry& a_entry, const int a_level)
 									  m_memory.writePage(n0->m_pageid, n0);
 									  m_memory.writePage(n1->m_pageid, n1);
 									  
-									  status = status2
+									  status = status2;
 									  if (status != NODE_OVERFLOW && status1 == NODE_CHANGED)
 									  {
 										  status = NODE_CHANGED;
