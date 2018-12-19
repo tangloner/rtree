@@ -23,9 +23,11 @@ int Rtree::insert(const RtreeNodeEntry& a_entry, const int a_level)
 	}
 	else
 	{
+		//// choose a a_level node
 		RtreeNode* n = chooseLeaf(a_entry, a_level);
 		int status = n->insert(a_entry);
-
+		
+		// if entry is not a leaf entry, 修改该entry对应node的亲代节点
 		if (a_level > 0)
 		{
 			RtreeNode* m = m_memory.loadPage(a_entry.m_id);
@@ -33,7 +35,7 @@ int Rtree::insert(const RtreeNodeEntry& a_entry, const int a_level)
 			m_memory.writePage(m->m_pageid, m);
 			delete m;
 		}
-
+		
 		while (status != NODE_UNCHANGED)
 		{
 			RtreeNode* parent = 0;
@@ -50,6 +52,7 @@ int Rtree::insert(const RtreeNodeEntry& a_entry, const int a_level)
 								  n->m_usedspace = 0; // reset the usedspace since all entries are moved to split nodes
 								  if (!n->isLeaf())
 								  {
+									  //modify parents of n0,n1 before node split
 									  for (int i = 0; i < n0->m_usedspace; i++)
 									  {
 										  int id = n0->m_entry[i]->m_id;
@@ -58,7 +61,7 @@ int Rtree::insert(const RtreeNodeEntry& a_entry, const int a_level)
 										  m_memory.writePage(id, child);
 										  delete child;
 									  }
-
+				
 									  for (int i = 0; i < n1->m_usedspace; i++)
 									  {
 										  int id = n1->m_entry[i]->m_id;
@@ -68,24 +71,25 @@ int Rtree::insert(const RtreeNodeEntry& a_entry, const int a_level)
 										  delete child;
 									  }
 								  }
-
+				
 								  if (n->isRoot())
 								  {
+									  // generate root node
 									  int parentid = m_memory.allocatePage();
 									  m_memory.m_rootPageID = parentid;
 									  parent = new RtreeNode(this, parentid, n->m_level + 1, -1);
-
+				
 									  RtreeNodeEntry* e0 = n0->genNodeEntry();
 									  n0->m_parent = parentid;
 									  parent->insert(*e0);
-
+				
 									  RtreeNodeEntry* e1 = n1->genNodeEntry();
 									  n1->m_parent = parentid;
 									  parent->insert(*e1);
-
+				
 									  m_memory.writePage(n0->m_pageid, n0);
 									  m_memory.writePage(n1->m_pageid, n1);
-
+				
 									  status = NODE_UNCHANGED;
 									  delete e0;
 									  delete e1;
@@ -93,18 +97,22 @@ int Rtree::insert(const RtreeNodeEntry& a_entry, const int a_level)
 								  else
 								  {
 									  parent = m_memory.loadPage(n->m_parent);
+									  
+									  // init n0 makes n0->m_pageid = n->m_pageid;
 									  RtreeNodeEntry* e0 = n0->genNodeEntry();
 									  n0->m_parent = parent->m_pageid;
 									  int status1 = parent->replace(*e0);
-
+									  
 									  RtreeNodeEntry* e1 = n1->genNodeEntry();
 									  n1->m_parent = parent->m_pageid;
-									  int status2 = parent->replace(*e1);
-
+									  ////there should be insert, not replace
+									  int status2 = parent->insert(*e1);
+				
 									  m_memory.writePage(n0->m_pageid, n0);
 									  m_memory.writePage(n1->m_pageid, n1);
-									  status = status2;
-									  if (status != NODE_OVERFLOW&&status1 == NODE_CHANGED)
+									  
+									  status = status2
+									  if (status != NODE_OVERFLOW && status1 == NODE_CHANGED)
 									  {
 										  status = NODE_CHANGED;
 									  }
@@ -134,22 +142,24 @@ int Rtree::insert(const RtreeNodeEntry& a_entry, const int a_level)
 									 m_memory.writePage(n->m_pageid, n);
 									 delete e;
 								 }
-			}
+			}// end case
 #pragma endregion
 
-			}
+			}// end switch
 			delete n;
 			n = parent;
-		}
+		}// end while
 		m_memory.writePage(n->m_pageid, n);
 		delete n;
-	}
+	}// end else
 	return 0;
 }
 
 RtreeNode* Rtree::chooseLeaf(const RtreeNodeEntry& a_entry, const int a_level)
 {
+	// let root becomes real root node
 	RtreeNode* root = m_memory.loadPage(m_memory.m_rootPageID);
+	// if this node's level is greater than target level
 	while (root->m_level > a_level)
 	{
 		int candidate = root->m_entry[0]->m_id;
@@ -166,6 +176,7 @@ RtreeNode* Rtree::chooseLeaf(const RtreeNodeEntry& a_entry, const int a_level)
 		delete root;
 		root = m_memory.loadPage(candidate);
 	}
+	// if this level is the target level
 	return root;
 }
 
