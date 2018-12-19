@@ -6,6 +6,7 @@
 RtreeNode::RtreeNode(const Rtree* a_rtree, const int a_pageid, const int a_level, const int a_parent) :
 m_rtree(a_rtree), m_pageid(a_pageid), m_level(a_level), m_parent(a_parent), m_usedspace(0)
 {
+	// identify node position, then allocate space
 	int max = (m_level == 0 ? m_rtree->m_maxLeafChild : m_rtree->m_maxNodeChild) + 1;
 	m_entry = new RtreeNodeEntry*[max];
 	memset(m_entry, 0, sizeof(RtreeNodeEntry*)*max);
@@ -60,7 +61,7 @@ int RtreeNode::insert(const RtreeNodeEntry& a_entry)
 {
 	int status = NODE_UNCHANGED;
 	m_entry[m_usedspace++] = a_entry.clone();
-	int max = (m_level == 0 ? m_rtree->m_maxNodeChild : m_rtree->m_maxNodeChild) + 1;
+	int max = (m_level == 0 ? m_rtree->m_maxLeafChild : m_rtree->m_maxNodeChild) + 1;
 	if (m_usedspace == max)
 	{
 		status = NODE_OVERFLOW;
@@ -127,8 +128,10 @@ int RtreeNode::remove(const RtreeNodeEntry& a_entry)
 int RtreeNode::replace(const RtreeNodeEntry& a_entry)
 {
 	int status = NODE_UNCHANGED;
-	for (int i = 0; i<m_usedspace; i++)
+	//traverse all entry
+	for (int i = 0; i < m_usedspace; i++)
 	{
+		// find entry with same id
 		if (m_entry[i]->m_id == a_entry.m_id)
 		{
 			if (!(*m_entry[i] == a_entry))
