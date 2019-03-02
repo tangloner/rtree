@@ -32,6 +32,7 @@ public:
 		RtreeNodeEntry** a_p, int a_numEntry, const bool a_pointOnly = false);
 
 	static int partition(Rtree& a_rtree, RtreeNodeEntry** a_p, const int a_numEntry, const int a_level, Array& a);
+
 };
 
 #endif // TGS_DEFINED
